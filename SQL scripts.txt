@@ -1,0 +1,202 @@
+SELECT * FROM medical.medical_prediction;
+
+
+SELECT 
+  AVG(annual_medical_cost) AS avg_cost,
+  MIN(annual_medical_cost) AS min_cost,
+  MAX(annual_medical_cost) AS max_cost
+FROM medical.medical_prediction;
+
+SELECT gender, AVG(annual_medical_cost) AS avg_cost
+FROM  medical.medical_prediction
+GROUP BY gender;
+
+select
+gender,
+round(avg(bmi),2) as avg_bmi
+from medical.medical_prediction
+group by gender;
+
+select
+round(avg(annual_medical_cost),2) as avg_cost,
+smoker
+from medical.medical_prediction
+group by smoker;
+
+SELECT
+  CASE
+    WHEN bmi < 18.5 THEN 'Underweight'
+    WHEN bmi BETWEEN 18.5 AND 24.9 THEN 'Normal'
+    WHEN bmi BETWEEN 25 AND 29.9 THEN 'Overweight'
+    ELSE 'Obese'
+  END AS bmi_category,
+  round(AVG(annual_medical_cost),1) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY bmi_category
+ORDER BY avg_cost 
+asc;
+
+SELECT 'Diabetes' AS The_condition , round(AVG(annual_medical_cost),1) AS Average_cost FROM medical.medical_prediction WHERE diabetes = '1'
+UNION ALL
+SELECT 'Hypertension', round(AVG(annual_medical_cost),1) AS average_cost FROM medical.medical_prediction WHERE hypertension = '1'
+UNION ALL
+SELECT 'Heart Disease', round(AVG(annual_medical_cost),1) AS average_cost FROM medical.medical_prediction WHERE heart_disease = '1'
+UNION ALL
+SELECT 'Asthma', round(AVG(annual_medical_cost),1) AS average_cost FROM medical.medical_prediction WHERE asthma = '1';
+
+WITH base AS (
+  SELECT AVG(annual_medical_cost) AS baseline
+  FROM medical.medical_prediction
+  WHERE diabetes='0' AND hypertension='0'
+    AND heart_disease='0' AND asthma='0'
+)
+SELECT 'Diabetes' AS The_condition,
+       AVG(annual_medical_cost) - (SELECT baseline FROM base) AS cost_increase
+FROM medical.medical_prediction
+ WHERE diabetes='1';
+ 
+ select 
+ (diabetes = '1') + (hypertension = '1') + (heart_disease = '1') + (asthma = '1') AS condition_count,
+ round(AVG(annual_medical_cost),2) AS avg_cost
+ from medical.medical_prediction
+ group by condition_count
+ order by condition_count
+ ASC;
+ 
+ SELECT
+ physical_activity_level, round(avg(annual_medical_cost),1) AS avg_cost, round(avg(previous_year_cost),1) AS avg_previous_cost
+ from medical.medical_prediction
+ group by physical_activity_level;
+ 
+ SELECT 
+  CASE
+    WHEN daily_steps < 5000 THEN 'Low'
+    WHEN daily_steps BETWEEN 5000 AND 9999 THEN 'Moderate'
+    ELSE 'High'
+  END AS step_level,
+  round(AVG(annual_medical_cost),1) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY step_level;
+
+SELECT 
+  CASE WHEN sleep_hours < 6 
+  THEN 'Low Sleep' 
+  ELSE 'Adequate Sleep' END AS sleep_group,
+  round(AVG(annual_medical_cost),2) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY sleep_group;
+
+SELECT stress_level,
+       round(AVG(doctor_visits_per_year),2) AS avg_visits,
+       round(AVG(hospital_admissions),2) AS avg_admissions,
+       round(AVG(annual_medical_cost),1) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY stress_level
+order by stress_level
+desc;
+
+SELECT smoker, round(AVG(medication_count),2),
+round(AVG(annual_medical_cost),2) 
+FROM medical.medical_prediction 
+WHERE smoker='Yes'
+AND physical_activity_level = 'Low' AND stress_level > 5
+group by smoker;
+
+select
+doctor_visits_per_year,
+round(avg(annual_medical_cost),2) as avg_cost
+from medical.medical_prediction
+where gender = 'Male' and age > 50
+group by doctor_visits_per_year
+order by doctor_visits_per_year
+asc;
+
+SELECT 
+  CASE WHEN hospital_admissions > 0 THEN 'Admitted' ELSE 'Not Admitted' END AS admission_status,
+  round(AVG(annual_medical_cost),2) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY admission_status;
+
+SELECT medication_count as medications, round(AVG(annual_medical_cost),2) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY medications
+ORDER BY medications;
+
+ WITH ranked AS (
+  SELECT *,
+         ntile(10) OVER (ORDER BY annual_medical_cost DESC) AS cost_decile
+  FROM medical.medical_prediction
+)
+SELECT * FROM ranked WHERE cost_decile = 1;
+
+ SELECT hospital_admissions,
+       round(AVG(previous_year_cost),2) AS avg_prev_cost
+FROM medical.medical_prediction
+GROUP BY hospital_admissions;
+
+ 
+ SELECT * FROM medical.medical_prediction;
+
+SELECT insurance_type, round(AVG(annual_medical_cost),2) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY insurance_type;
+
+SELECT 
+  CASE
+    WHEN insurance_coverage_pct < 50 THEN 'Low Coverage'
+    WHEN insurance_coverage_pct BETWEEN 50 AND 80 THEN 'Medium Coverage'
+    ELSE 'High Coverage'
+  END AS coverage_group,
+  round(AVG(annual_medical_cost),2) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY coverage_group;
+
+SELECT insurance_type,
+       round(AVG(annual_medical_cost * (1 - insurance_coverage_pct/100)),2) AS avg_out_of_pocket
+FROM medical.medical_prediction
+GROUP BY insurance_type
+ORDER BY avg_out_of_pocket DESC;
+
+SELECT city_type, round(AVG(annual_medical_cost),2) AS avg_cost
+FROM medical.medical_prediction
+GROUP BY city_type;
+
+SELECT round(AVG(annual_medical_cost - previous_year_cost),2) AS avg_change
+FROM medical.medical_prediction;
+
+SELECT
+  CASE WHEN annual_medical_cost > previous_year_cost THEN 'Increase' ELSE 'Decrease' 
+  END AS change_type,
+  COUNT(*) * 100.0 / (SELECT COUNT(*) FROM medical.medical_prediction) AS percentage
+FROM medical.medical_prediction
+GROUP BY change_type;
+
+WITH ranked AS (
+  SELECT *, NTILE(20) OVER (ORDER BY annual_medical_cost DESC) AS tile
+  FROM medical.medical_prediction
+)
+SELECT * FROM ranked WHERE tile = 1;
+
+WITH ranked AS (
+  SELECT annual_medical_cost,
+         NTILE(10) OVER (ORDER BY annual_medical_cost DESC) AS decile
+  FROM medical.medical_prediction
+)
+SELECT
+  SUM(CASE WHEN decile=1 THEN annual_medical_cost ELSE 0 END) /
+  SUM(annual_medical_cost) * 100 AS top_10pct_spend_share
+FROM ranked;
+
+SELECT smoker,
+       CASE
+         WHEN annual_medical_cost > 20000 THEN 'High Risk'
+         WHEN annual_medical_cost BETWEEN 10000 AND 20000 THEN 'Medium Risk'
+         ELSE 'Low Risk'
+       END AS risk_tier
+FROM medical.medical_prediction
+where gender = 'female'
+AND age > 60;
+
+
+
+
